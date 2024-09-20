@@ -6,5 +6,3 @@ class LocationData(BaseModel):
     region_code: str
     province_name: str
     province_code: str
-    district_name: str
-    district_code: str

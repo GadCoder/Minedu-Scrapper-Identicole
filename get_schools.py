@@ -12,8 +12,8 @@ load_dotenv()
 
 def create_sql_connection():
     connection = mysql.connector.connect(
-        host=os.getenv("host"),  # e.g., "localhost"
-        user=os.getenv("user"),  # e.g., "root"
+        host=os.getenv("host"),
+        user=os.getenv("user"),
         password=os.getenv("password"),
         database=os.getenv("database"),
     )
@@ -27,17 +27,12 @@ def get_departments_data(connection):
             region.code as 'region_code',
             p.name as 'province_name',
             p.province_code as 'province_code',
-            d.name as 'district_name',
-            d.district_code as 'district_code'
         FROM region
             INNER JOIN province p on region.code = p.region_code
-            INNER JOIN district d on p.code = d.province_code
         ;
     """
     cursor.execute(query)
-    # Step 4: Fetch and print the results (if using SELECT query)
     results = cursor.fetchall()
-    # Step 5: Close the cursor and the connection
     cursor.close()
     return results
 
@@ -60,13 +55,11 @@ def transform_location_data(locations: list) -> list[LocationData]:
 
 def create_data_for_query(location: LocationData):
     data = {
-        "lat": "-14.4833",
-        "lng": "-75.2456",
         "accion": "Detalle",
         "ubicacion": "1",
         "s_departament_geo": location.region_code,
         "s_province_geo": location.province_code,
-        "s_district_geo	": location.district_code,
+        "s_district_geo	": "",
         "txt_cen_edu": "",
         "modalidad": "01",
         "s_nivel": "B0",
@@ -82,9 +75,7 @@ def get_schools_data(location: LocationData, connection):
     url = "https://identicole.minedu.gob.pe/colegio/busqueda_colegios_detalle"
     data = create_data_for_query(location=location)
     response = requests.post(url, data=data)
-    location_name = (
-        f"{location.region_name}-{location.province_name}-{location.district_name}"
-    )
+    location_name = f"{location.region_name}-{location.province_name}"
     status_code = response.status_code
     if status_code != 200:
         print(f"! Error al obtener colegios para {location_name} -> {status_code}")
@@ -95,7 +86,6 @@ def get_schools_data(location: LocationData, connection):
         text=response.text,
         location_name=location_name,
     )
-    print(f"Se registraron los colegios para {location_name}")
 
 
 def process_school_query(
@@ -105,13 +95,11 @@ def process_school_query(
     if len(parts) < 4:
         print(f"! No se encontraron colegios para {location_name}")
         return
-    print(f"Se encontraron {parts[2]} colegios para {location_name}")
     schools = json.loads(parts[3])
+    print(f"Se encontraron {parts[2]} colegios para {location_name}")
     for school in schools:
         try:
-            insert_school(
-                connection=connection, json_data=school, location_data=location
-            )
+            insert_school(connection=connection, json_data=school)
         except Exception as e:
             continue
     pagination_numbers = get_pagination_numbers(text=text)
@@ -127,16 +115,14 @@ def get_pagination_numbers(text: str):
     if pagination is None:
         return 0
     links = pagination.find_all("a", class_="paginacion-numerada")
-    return list(set([link["data-nro-pagina"] for link in links]))
+    return [link["data-nro-pagina"] for link in links if link.text != "»"]
 
 
 def get_schools_pagination_data(location: LocationData, page: int, connection):
-    url = f"https://identicole.minedu.gob.pe/colegio/busqueda_colegios_detalle/{page}"
+    url = f"https://identicole.minedu.gob.pe//colegio/busqueda_colegios_detalle/{page}"
     data = create_data_for_query(location=location)
     response = requests.post(url, data=data)
-    location_name = (
-        f"{location.region_name}-{location.province_name}-{location.district_name}"
-    )
+    location_name = f"{location.region_name}-{location.province_name}"
     status_code = response.status_code
     if status_code != 200:
         print(f"! Error al obtener colegios para {location_name} -> {status_code}")
@@ -148,9 +134,7 @@ def get_schools_pagination_data(location: LocationData, page: int, connection):
     schools = json.loads(parts[3])
     for school in schools:
         try:
-            insert_school(
-                connection=connection, json_data=school, location_data=location
-            )
+            insert_school(connection=connection, json_data=school)
         except Exception as e:
             continue
 
