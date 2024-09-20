@@ -70,55 +70,27 @@ def create_data_for_query(location: LocationData):
 
 
 def get_schools_data(location: LocationData, connection):
-    url = "https://identicole.minedu.gob.pe/colegio/busqueda_colegios_detalle"
     data = create_data_for_query(location=location)
-    response = requests.post(url, data=data)
     location_name = f"{location.region_name}-{location.province_name}"
-    status_code = response.status_code
-    if status_code != 200:
-        print(f"! Error al obtener colegios para {location_name} -> {status_code}")
-        return
-    process_school_query(
-        location=location,
-        connection=connection,
-        text=response.text,
-        location_name=location_name,
-    )
+    index = 0
+    page_has_data = True
+    schools_number = 0
+    while page_has_data:
+        schools_data = get_schools_pagination_data(
+            location=location, page=index, data=data, connection=connection
+        )
+        if schools_data == 0:
+            page_has_data = False
+            break
+        schools_number += schools_data
+        index += 12
+    print(f"Se encontraron {schools_number} colegios para {location_name}")
 
 
-def process_school_query(
-    location: LocationData, connection, text: str, location_name: str
+def get_schools_pagination_data(
+    location: LocationData, page: int, data: dict, connection
 ):
-    parts = text.split("||")
-    if len(parts) < 4:
-        print(f"! No se encontraron colegios para {location_name}")
-        return
-    schools = json.loads(parts[3])
-    print(f"Se encontraron {parts[2]} colegios para {location_name}")
-    for school in schools:
-        try:
-            insert_school(connection=connection, json_data=school)
-        except Exception as e:
-            continue
-    pagination_numbers = get_pagination_numbers(text=text)
-    if pagination_numbers == 0:
-        return
-    for page in pagination_numbers:
-        get_schools_pagination_data(location=location, page=page, connection=connection)
-
-
-def get_pagination_numbers(text: str):
-    soup = BeautifulSoup(text, "html.parser")
-    pagination = soup.find("ul", class_="paginator")
-    if pagination is None:
-        return 0
-    links = pagination.find_all("a", class_="paginacion-numerada")
-    return [link["data-nro-pagina"] for link in links if link.text != "»"]
-
-
-def get_schools_pagination_data(location: LocationData, page: int, connection):
     url = f"https://identicole.minedu.gob.pe//colegio/busqueda_colegios_detalle/{page}"
-    data = create_data_for_query(location=location)
     response = requests.post(url, data=data)
     location_name = f"{location.region_name}-{location.province_name}"
     status_code = response.status_code
@@ -130,11 +102,14 @@ def get_schools_pagination_data(location: LocationData, page: int, connection):
         print(f"! No se encontraron colegios para {location_name} - page {page}")
         return
     schools = json.loads(parts[3])
+    if not schools:
+        return 0
     for school in schools:
         try:
             insert_school(connection=connection, json_data=school)
         except Exception as e:
             continue
+    return len(schools)
 
 
 def main():
