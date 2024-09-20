@@ -46,8 +46,6 @@ def transform_location_data(locations: list) -> list[LocationData]:
                 region_code=location[1],
                 province_name=location[2],
                 province_code=location[3],
-                district_name=location[4],
-                district_code=location[5],
             )
         )
     return location_data
