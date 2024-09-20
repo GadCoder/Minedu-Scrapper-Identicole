@@ -1,0 +1,104 @@
+{
+    "departments": [
+        {
+            "name": "AMAZONAS",
+            "value": "01"
+        },
+        {
+            "name": "\u00c1NCASH",
+            "value": "02"
+        },
+        {
+            "name": "APUR\u00cdMAC",
+            "value": "03"
+        },
+        {
+            "name": "AREQUIPA",
+            "value": "04"
+        },
+        {
+            "name": "AYACUCHO",
+            "value": "05"
+        },
+        {
+            "name": "CAJAMARCA",
+            "value": "06"
+        },
+        {
+            "name": "CALLAO",
+            "value": "07"
+        },
+        {
+            "name": "CUSCO",
+            "value": "08"
+        },
+        {
+            "name": "HUANCAVELICA",
+            "value": "09"
+        },
+        {
+            "name": "HU\u00c1NUCO",
+            "value": "10"
+        },
+        {
+            "name": "ICA",
+            "value": "11"
+        },
+        {
+            "name": "JUN\u00cdN",
+            "value": "12"
+        },
+        {
+            "name": "LA LIBERTAD",
+            "value": "13"
+        },
+        {
+            "name": "LAMBAYEQUE",
+            "value": "14"
+        },
+        {
+            "name": "LIMA",
+            "value": "15"
+        },
+        {
+            "name": "LORETO",
+            "value": "16"
+        },
+        {
+            "name": "MADRE DE DIOS",
+            "value": "17"
+        },
+        {
+            "name": "MOQUEGUA",
+            "value": "18"
+        },
+        {
+            "name": "PASCO",
+            "value": "19"
+        },
+        {
+            "name": "PIURA",
+            "value": "20"
+        },
+        {
+            "name": "PUNO",
+            "value": "21"
+        },
+        {
+            "name": "SAN MART\u00cdN",
+            "value": "22"
+        },
+        {
+            "name": "TACNA",
+            "value": "23"
+        },
+        {
+            "name": "TUMBES",
+            "value": "24"
+        },
+        {
+            "name": "UCAYALI",
+            "value": "25"
+        }
+    ]
+}
