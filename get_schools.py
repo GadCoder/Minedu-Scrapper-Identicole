@@ -145,7 +145,6 @@ def get_schools_pagination_data(location: LocationData, page: int, connection):
     if len(parts) < 4:
         print(f"! No se encontraron colegios para {location_name} - page {page}")
         return
-    print(f"\tSe encontraron {parts[2]} colegios para {location_name} - page {page}")
     schools = json.loads(parts[3])
     for school in schools:
         try:
