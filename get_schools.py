@@ -100,7 +100,7 @@ def get_schools_pagination_data(
     parts = response.text.split("||")
     if len(parts) < 4:
         print(f"! No se encontraron colegios para {location_name} - page {page}")
-        return
+        return 0
     schools = json.loads(parts[3])
     if not schools:
         return 0
