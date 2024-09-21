@@ -51,7 +51,7 @@ def transform_location_data(locations: list) -> list[LocationData]:
     return location_data
 
 
-def create_data_for_query(location: LocationData):
+def create_data_for_query(location: LocationData, modality: str, stage: str):
     data = {
         "accion": "Detalle",
         "ubicacion": "1",
@@ -59,8 +59,8 @@ def create_data_for_query(location: LocationData):
         "s_province_geo": location.province_code,
         "s_district_geo	": "",
         "txt_cen_edu": "",
-        "modalidad": "01",
-        "s_nivel": "B0",
+        "modalidad": modality,
+        "s_nivel": stage,
         "vacante": "3",
         "participa": "3",
         "dot-amount": "5",
@@ -69,8 +69,8 @@ def create_data_for_query(location: LocationData):
     return data
 
 
-def get_schools_data(location: LocationData, connection):
-    data = create_data_for_query(location=location)
+def get_schools_data(location: LocationData, connection, modality: str, stage: str):
+    data = create_data_for_query(location=location, modality=modality, stage=stage)
     location_name = f"{location.region_name}-{location.province_name}"
     index = 0
     page_has_data = True
@@ -116,8 +116,17 @@ def main():
     connection = create_sql_connection()
     locations = get_departments_data(connection=connection)
     location_data: list[LocationData] = transform_location_data(locations=locations)
+    modalities = ["01", "03", "04"]
+    stages = ["A1,A2,A3", "B0", "A5", "F0"]
     for location in location_data:
-        get_schools_data(location=location, connection=connection)
+        for modality in modalities:
+            for stage in stages:
+                get_schools_data(
+                    location=location,
+                    connection=connection,
+                    modality=modality,
+                    stage=stage,
+                )
 
 
 if __name__ == "__main__":
