@@ -1,8 +1,11 @@
-from pydantic import BaseModel
 
 
-class LocationData(BaseModel):
-    region_name: str
-    region_code: str
-    province_name: str
-    province_code: str
+class LocationData():
+    def __init__(self, location: list) -> None:
+        pass
+        self.region_name: str = location[0]
+        self.region_code: str = location[1]
+        self.province_name: str = location[2]
+        self.province_code: str = location[3]
+        self.district_name: str = ""
+        self.district_code: str = ""

@@ -1,10 +1,8 @@
-from pydantic import BaseModel, Field
-from typing import Optional
 from decimal import Decimal
+from pydantic import BaseModel, Field
 
 
 class School(BaseModel):
-    id: Optional[int] = Field(None, description="Primary key, auto-increment")
     id_codmod: str = Field(..., max_length=255, description="ID Codmod")
     cod_mod: str = Field(..., max_length=255, description="Cod Mod")
     cod_local: str = Field(..., max_length=255, description="Cod Local")

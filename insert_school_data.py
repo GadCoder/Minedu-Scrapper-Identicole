@@ -19,7 +19,6 @@ def insert_school(connection, json_data: dict):
         );
     """
     cursor = connection.cursor()
-    # Prepare the data from the JSON
     data_tuple = (
         json_data["ordering"],
         json_data["id_codmod"],

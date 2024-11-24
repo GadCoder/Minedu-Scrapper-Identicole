@@ -61,12 +61,15 @@ def main():
     with open("data_departments.json", "r", encoding="utf-8") as file:
         data = json.load(file)
     for department in data["departments"]:
+        print(f"Inserting data for {department['name']}")
         insert_region(connection, department["name"], department["value"])
         for province in department["provinces"]:
+            print(f"\tInserting data for {province['nombre']}")
             insert_province(
                 connection, province["nombre"], province["codprov"], department["value"]
             )
             for district in province["districts"]:
+                print(f"\t\tInserting data for {district['nombre']}")
                 insert_district(
                     connection,
                     district["nombre"],
