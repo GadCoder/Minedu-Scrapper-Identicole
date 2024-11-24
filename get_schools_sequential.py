@@ -83,7 +83,7 @@ def get_request_data(location: LocationData, modality: str, stage: str):
 def get_schools_from_page(
         location_name: str, page: int, data: dict, connection
 ):
-    base_url = "https://identicole.minedu.gob.pe//colegio/busqueda_colegios_detalle"
+    base_url = "https://identicole.minedu.gob.pe/colegio/busqueda_colegios_detalle"
     url = base_url if page == 0 else f"{base_url}/{page}"
     response = requests.post(url, data=data)
     status_code = response.status_code
@@ -111,7 +111,7 @@ def save_schools_from_page(connection, schools, location_name: str):
 
 
 def main():
-    database = "schools_data_workers"
+    database = "schools_data_base"
     connection = create_sql_connection(database=database)
     locations = get_departments_data(connection=connection, database=database)
     location_data: list[LocationData] = transform_location_data(locations=locations)

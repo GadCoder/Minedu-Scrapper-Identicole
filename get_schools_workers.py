@@ -6,6 +6,8 @@ import mysql.connector
 import requests
 from dotenv import load_dotenv
 
+import http.client, urllib.parse
+
 from insert_school_data import insert_school
 from models.location_data import LocationData
 
@@ -81,6 +83,20 @@ def get_request_data(location: LocationData, modality: str, stage: str):
 
 
 def get_schools_from_page(
+        location_name: str, page: int, data: dict, connection
+):
+    url = "http://localhost:8787"
+    data = {
+        "page": page,
+        "request_data": data
+    }
+    response = requests.post(url, json=data)
+    print(response.status_code)
+    time.sleep(1)
+    print(response.text)
+
+
+def get_schools_from_page1(
         location_name: str, page: int, data: dict, connection
 ):
     base_url = "https://identicole.minedu.gob.pe//colegio/busqueda_colegios_detalle"
