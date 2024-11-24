@@ -6,9 +6,6 @@ import mysql.connector
 import requests
 from dotenv import load_dotenv
 
-import http.client, urllib.parse
-
-from insert_school_data import insert_school
 from models.location_data import LocationData
 
 load_dotenv()
@@ -54,12 +51,9 @@ def get_schools_from_location(location: LocationData, connection, modality: str,
     data = get_request_data(location=location, modality=modality, stage=stage)
     page_number = 0
     page_has_data = True
-    location_name = (
-        f"{location.region_name}-{location.province_name}"
-    )
     while page_has_data:
         page_has_data = get_schools_from_page(
-            location_name=location_name, page=page_number, data=data, connection=connection
+            page=page_number, data=data, connection=connection
         )
         page_number += 12
 
@@ -83,47 +77,18 @@ def get_request_data(location: LocationData, modality: str, stage: str):
 
 
 def get_schools_from_page(
-        location_name: str, page: int, data: dict, connection
+        page: int, data: dict, connection
 ):
-    url = "http://localhost:8787"
+    url = "https://get-schools.gadsocial1213.workers.dev/"
     data = {
         "page": page,
         "request_data": data
     }
     response = requests.post(url, json=data)
-    print(response.status_code)
-    time.sleep(1)
-    print(response.text)
-
-
-def get_schools_from_page1(
-        location_name: str, page: int, data: dict, connection
-):
-    base_url = "https://identicole.minedu.gob.pe//colegio/busqueda_colegios_detalle"
-    url = base_url if page == 0 else f"{base_url}/{page}"
-    response = requests.post(url, data=data)
     status_code = response.status_code
     if status_code != 200:
-        print(f"! Error al obtener colegios para {location_name} -> {status_code}")
         return False
-    parts = response.text.split("||")
-    if len(parts) < 4:
-        print(f"! No se encontraron colegios para {location_name} - page {page}")
-        return False
-    schools = json.loads(parts[3])
-    if not schools:
-        return False
-    save_schools_from_page(connection=connection, schools=schools, location_name=location_name)
     return True
-
-
-def save_schools_from_page(connection, schools, location_name: str):
-    for school in schools:
-        try:
-            insert_school(connection=connection, json_data=school)
-        except Exception as e:
-            print(f"! Error saving {school["cen_edu"]}: {e} -> {location_name}")
-            continue
 
 
 def main():
@@ -149,7 +114,6 @@ def main():
                 )
 
     end_time = time.time()
-    # Calculate elapsed time in seconds and convert to minutes
     elapsed_time_seconds = end_time - start_time
     elapsed_time_minutes = elapsed_time_seconds / 60
 
