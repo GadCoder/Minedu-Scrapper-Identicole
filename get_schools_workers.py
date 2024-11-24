@@ -1,9 +1,7 @@
-import asyncio
 import os
 import time
 import json
 
-import httpx
 import mysql.connector
 import requests
 from dotenv import load_dotenv
@@ -23,8 +21,7 @@ def create_sql_connection(database: str):
     return connection
 
 
-def get_departments_data(database: str):
-    connection = create_sql_connection(database=database)
+def get_departments_data(connection, database: str):
     cursor = connection.cursor()
     query = f"""
         SELECT
@@ -50,16 +47,15 @@ def transform_location_data(locations: list) -> list[LocationData]:
     return location_data
 
 
-def get_schools_from_location(location: LocationData, modality: str, stage: str):
+def get_schools_from_location(location: LocationData, connection, modality: str, stage: str):
     data = get_request_data(location=location, modality=modality, stage=stage)
     location_name = f"{location.region_name}-{location.province_name}"
     number_of_schools = get_number_of_schools(data=data, location_name=location_name)
     if number_of_schools == 0:
         return
+    print(f"\tFound {number_of_schools} schools for {location_name}")
     number_of_pages = get_number_of_pages(number_of_schools=number_of_schools)
-    for i in range(number_of_pages):
-        page_number = i * 12
-        asyncio.create_task(get_schools_from_page(page=page_number, data=data))
+    save_schools(number_of_pages=number_of_pages, data=data)
 
 
 def get_number_of_schools(data: dict, location_name: str):
@@ -89,7 +85,7 @@ def get_request_data(location: LocationData, modality: str, stage: str):
         "ubicacion": "1",
         "s_departament_geo": location.region_code,
         "s_province_geo": location.province_code,
-        "s_district_geo	": "01",
+        "s_district_geo": "01",
         "txt_cen_edu": "",
         "modalidad": modality,
         "s_nivel": stage,
@@ -101,21 +97,19 @@ def get_request_data(location: LocationData, modality: str, stage: str):
     return data
 
 
-async def get_schools_from_page(
-        page: int, data: dict
-):
-    url = "https://get-schools.gadsocial1213.workers.dev/"
-    data = {
-        "page": page,
-        "request_data": data
+def save_schools(number_of_pages: int, data: dict):
+    url = f"https://identicole-scrapper-api/save-schools-from-location?number_of_pages={number_of_pages}"
+    headers = {
+        'accept': 'application/json',
+        "Content-Type": "application/json"
     }
-    async with httpx.AsyncClient() as client:
-        await client.post(url, json=data)
+    requests.post(url, json=data, headers=headers)
 
 
-async def main():
+def main():
     database = "schools_data_workers"
-    locations = get_departments_data(database=database)
+    connection = create_sql_connection(database=database)
+    locations = get_departments_data(connection=connection, database=database)
     location_data: list[LocationData] = transform_location_data(locations=locations)
     modalities = ["01", "03", "04"]
     stages = ["A1,A2,A3", "B0", "A5", "F0"]
@@ -129,12 +123,11 @@ async def main():
             for stage in stages:
                 get_schools_from_location(
                     location=location,
+                    connection=connection,
                     modality=modality,
                     stage=stage,
                 )
 
-    while any(task for task in asyncio.all_tasks() if not task.done()):
-        await asyncio.sleep(1)  # Periodically check
     end_time = time.time()
     elapsed_time_seconds = end_time - start_time
     elapsed_time_minutes = elapsed_time_seconds / 60
@@ -143,4 +136,4 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
