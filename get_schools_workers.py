@@ -1,7 +1,9 @@
+import asyncio
 import os
 import time
 import json
 
+import httpx
 import mysql.connector
 import requests
 from dotenv import load_dotenv
@@ -21,7 +23,8 @@ def create_sql_connection(database: str):
     return connection
 
 
-def get_departments_data(connection, database: str):
+def get_departments_data(database: str):
+    connection = create_sql_connection(database=database)
     cursor = connection.cursor()
     query = f"""
         SELECT
@@ -47,15 +50,37 @@ def transform_location_data(locations: list) -> list[LocationData]:
     return location_data
 
 
-def get_schools_from_location(location: LocationData, connection, modality: str, stage: str):
+def get_schools_from_location(location: LocationData, modality: str, stage: str):
     data = get_request_data(location=location, modality=modality, stage=stage)
-    page_number = 0
-    page_has_data = True
-    while page_has_data:
-        page_has_data = get_schools_from_page(
-            page=page_number, data=data, connection=connection
-        )
-        page_number += 12
+    location_name = f"{location.region_name}-{location.province_name}"
+    number_of_schools = get_number_of_schools(data=data, location_name=location_name)
+    if number_of_schools == 0:
+        return
+    number_of_pages = get_number_of_pages(number_of_schools=number_of_schools)
+    for i in range(number_of_pages):
+        page_number = i * 12
+        asyncio.create_task(get_schools_from_page(page=page_number, data=data))
+
+
+def get_number_of_schools(data: dict, location_name: str):
+    url = 'https://identicole.minedu.gob.pe/colegio/busqueda_colegios_detalle'
+    response = requests.post(url, data=data)
+    if response.status_code != 200:
+        print(f"\t! No se encontraron colegios para {location_name}")
+        return 0
+    parts = response.text.split("||")
+    if len(parts) < 4:
+        print(f"! No se encontraron colegios para {location_name}")
+        return False
+    number_of_schools = int(parts[2])
+    return number_of_schools
+
+
+def get_number_of_pages(number_of_schools: int):
+    number_of_pages = number_of_schools // 12
+    if number_of_schools % 12 != 0:
+        number_of_pages += 1
+    return number_of_pages
 
 
 def get_request_data(location: LocationData, modality: str, stage: str):
@@ -76,25 +101,21 @@ def get_request_data(location: LocationData, modality: str, stage: str):
     return data
 
 
-def get_schools_from_page(
-        page: int, data: dict, connection
+async def get_schools_from_page(
+        page: int, data: dict
 ):
     url = "https://get-schools.gadsocial1213.workers.dev/"
     data = {
         "page": page,
         "request_data": data
     }
-    response = requests.post(url, json=data)
-    status_code = response.status_code
-    if status_code != 200:
-        return False
-    return True
+    async with httpx.AsyncClient() as client:
+        await client.post(url, json=data)
 
 
-def main():
+async def main():
     database = "schools_data_workers"
-    connection = create_sql_connection(database=database)
-    locations = get_departments_data(connection=connection, database=database)
+    locations = get_departments_data(database=database)
     location_data: list[LocationData] = transform_location_data(locations=locations)
     modalities = ["01", "03", "04"]
     stages = ["A1,A2,A3", "B0", "A5", "F0"]
@@ -108,11 +129,12 @@ def main():
             for stage in stages:
                 get_schools_from_location(
                     location=location,
-                    connection=connection,
                     modality=modality,
                     stage=stage,
                 )
 
+    while any(task for task in asyncio.all_tasks() if not task.done()):
+        await asyncio.sleep(1)  # Periodically check
     end_time = time.time()
     elapsed_time_seconds = end_time - start_time
     elapsed_time_minutes = elapsed_time_seconds / 60
@@ -121,4 +143,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
