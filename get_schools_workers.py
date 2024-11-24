@@ -98,7 +98,7 @@ def get_request_data(location: LocationData, modality: str, stage: str):
 
 
 def save_schools(number_of_pages: int, data: dict):
-    url = f"https://identicole-scrapper-api/save-schools-from-location?number_of_pages={number_of_pages}"
+    url = f"https://identicole-scrapper-api.gadsw.dev/save-schools-from-location?number_of_pages={number_of_pages}"
     headers = {
         'accept': 'application/json',
         "Content-Type": "application/json"
