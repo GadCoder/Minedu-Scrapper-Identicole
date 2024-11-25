@@ -27,9 +27,12 @@ def get_departments_data(connection, database: str):
     query = f"""
         SELECT
             region.name, region.code,
-            p.name, p.province_code
+            p.name, p.province_code,
+            d.name as 'district_name',
+            d.district_code as 'district_code'
         FROM region
         INNER JOIN {database}.province p on region.code = p.region_code;
+        INNER JOIN {database}.district d on p.code = d.province_code;
     """
     cursor.execute(query)
     results = cursor.fetchall()
@@ -40,25 +43,27 @@ def get_departments_data(connection, database: str):
 def transform_location_data(locations: list) -> list[LocationData]:
     location_data = []
     for location in locations:
-        location_data.append(
-            LocationData(
-                location=location
-            )
-        )
+        location_data.append(LocationData(location=location))
     return location_data
 
 
-def get_schools_from_location(location: LocationData, connection, modality: str, stage: str):
+def get_schools_from_location(
+    location: LocationData, connection, modality: str, stage: str
+):
     data = get_request_data(location=location, modality=modality, stage=stage)
     page_number = 0
-    page_has_data = True
-    location_name = (
-        f"{location.region_name}-{location.province_name}"
-    )
-    while page_has_data:
-        page_has_data = get_schools_from_page(
-            location_name=location_name, page=page_number, data=data, connection=connection
+    schools_founded = 0
+    location_name = f"{location.region_name}-{location.province_name}"
+    while True:
+        schools_from_page = get_schools_from_page(
+            location_name=location_name,
+            page=page_number,
+            data=data,
+            connection=connection,
         )
+        if schools_from_page == 0:
+            return schools_founded
+        schools_founded += schools_from_page
         page_number += 12
 
 
@@ -68,7 +73,7 @@ def get_request_data(location: LocationData, modality: str, stage: str):
         "ubicacion": "1",
         "s_departament_geo": location.region_code,
         "s_province_geo": location.province_code,
-        "s_district_geo	": "01",
+        "s_district_geo	": location.district_code,
         "txt_cen_edu": "",
         "modalidad": modality,
         "s_nivel": stage,
@@ -80,25 +85,25 @@ def get_request_data(location: LocationData, modality: str, stage: str):
     return data
 
 
-def get_schools_from_page(
-        location_name: str, page: int, data: dict, connection
-):
+def get_schools_from_page(location_name: str, page: int, data: dict, connection):
     base_url = "https://identicole.minedu.gob.pe/colegio/busqueda_colegios_detalle"
     url = base_url if page == 0 else f"{base_url}/{page}"
     response = requests.post(url, data=data)
     status_code = response.status_code
     if status_code != 200:
         print(f"! Error al obtener colegios para {location_name} -> {status_code}")
-        return False
+        return 0
     parts = response.text.split("||")
     if len(parts) < 4:
         print(f"! No se encontraron colegios para {location_name} - page {page}")
-        return False
+        return 0
     schools = json.loads(parts[3])
     if not schools:
-        return False
-    save_schools_from_page(connection=connection, schools=schools, location_name=location_name)
-    return True
+        return 0
+    save_schools_from_page(
+        connection=connection, schools=schools, location_name=location_name
+    )
+    return len(schools)
 
 
 def save_schools_from_page(connection, schools, location_name: str):
@@ -119,21 +124,20 @@ def main():
     stages = ["A1,A2,A3", "B0", "A5", "F0"]
     start_time = time.time()
     for location in location_data:
-        location_name = (
-            f"{location.region_name}-{location.province_name}"
-        )
+        schools_founded = 0
+        location_name = f"{location.region_name}-{location.province_name}"
         print(f"Getting schools for {location_name}")
         for modality in modalities:
             for stage in stages:
-                get_schools_from_location(
+                schools_founded += get_schools_from_location(
                     location=location,
                     connection=connection,
                     modality=modality,
                     stage=stage,
                 )
+        print(f"\tFounded {schools_founded} schools for {location_name}")
 
     end_time = time.time()
-    # Calculate elapsed time in seconds and convert to minutes
     elapsed_time_seconds = end_time - start_time
     elapsed_time_minutes = elapsed_time_seconds / 60
 

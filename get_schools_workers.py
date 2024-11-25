@@ -26,9 +26,12 @@ def get_departments_data(connection, database: str):
     query = f"""
         SELECT
             region.name, region.code,
-            p.name, p.province_code
+            p.name, p.province_code,
+            d.name as 'district_name',
+            d.district_code as 'district_code'
         FROM region
         INNER JOIN {database}.province p on region.code = p.region_code;
+        INNER JOIN {database}.district d on p.code = d.province_code;
     """
     cursor.execute(query)
     results = cursor.fetchall()
@@ -39,27 +42,23 @@ def get_departments_data(connection, database: str):
 def transform_location_data(locations: list) -> list[LocationData]:
     location_data = []
     for location in locations:
-        location_data.append(
-            LocationData(
-                location=location
-            )
-        )
+        location_data.append(LocationData(location=location))
     return location_data
 
 
-def get_schools_from_location(location: LocationData, connection, modality: str, stage: str):
+def get_schools_from_location(location: LocationData, modality: str, stage: str):
     data = get_request_data(location=location, modality=modality, stage=stage)
     location_name = f"{location.region_name}-{location.province_name}"
     number_of_schools = get_number_of_schools(data=data, location_name=location_name)
     if number_of_schools == 0:
-        return
-    print(f"\tFound {number_of_schools} schools for {location_name}")
+        return 0
     number_of_pages = get_number_of_pages(number_of_schools=number_of_schools)
     save_schools(number_of_pages=number_of_pages, data=data)
+    return number_of_schools
 
 
 def get_number_of_schools(data: dict, location_name: str):
-    url = 'https://identicole.minedu.gob.pe/colegio/busqueda_colegios_detalle'
+    url = "https://identicole.minedu.gob.pe/colegio/busqueda_colegios_detalle"
     response = requests.post(url, data=data)
     if response.status_code != 200:
         print(f"\t! No se encontraron colegios para {location_name}")
@@ -99,10 +98,7 @@ def get_request_data(location: LocationData, modality: str, stage: str):
 
 def save_schools(number_of_pages: int, data: dict):
     url = f"https://identicole-scrapper-api.gadsw.dev/save-schools-from-location?number_of_pages={number_of_pages}"
-    headers = {
-        'accept': 'application/json',
-        "Content-Type": "application/json"
-    }
+    headers = {"accept": "application/json", "Content-Type": "application/json"}
     requests.post(url, json=data, headers=headers)
 
 
@@ -115,18 +111,17 @@ def main():
     stages = ["A1,A2,A3", "B0", "A5", "F0"]
     start_time = time.time()
     for location in location_data:
-        location_name = (
-            f"{location.region_name}-{location.province_name}"
-        )
+        schools_founded = 0
+        location_name = f"{location.region_name}-{location.province_name}"
         print(f"Getting schools for {location_name}")
         for modality in modalities:
             for stage in stages:
-                get_schools_from_location(
+                schools_founded += get_schools_from_location(
                     location=location,
-                    connection=connection,
                     modality=modality,
                     stage=stage,
                 )
+        print(f"\tFounded {schools_founded} schools for {location_name}")
 
     end_time = time.time()
     elapsed_time_seconds = end_time - start_time
