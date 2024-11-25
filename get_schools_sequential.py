@@ -99,18 +99,15 @@ def get_schools_from_page(location_name: str, page: int, data: dict, connection)
     schools = json.loads(parts[3])
     if not schools:
         return 0
-    save_schools_from_page(
-        connection=connection, schools=schools, location_name=location_name
-    )
+    save_schools_from_page(connection=connection, schools=schools)
     return len(schools)
 
 
-def save_schools_from_page(connection, schools, location_name: str):
+def save_schools_from_page(connection, schools):
     for school in schools:
         try:
             insert_school(connection=connection, json_data=school)
         except Exception as e:
-            print(f"! Error saving {school["cen_edu"]}: {e} -> {location_name}")
             continue
 
 
