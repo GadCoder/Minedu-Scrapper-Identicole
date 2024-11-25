@@ -29,7 +29,7 @@ def get_departments_data(connection, database: str):
             p.name, p.province_code,
             d.name, d.district_code
         FROM region
-        INNER JOIN {database}.province p on region.code = p.region_code;
+        INNER JOIN {database}.province p on region.code = p.region_code
         INNER JOIN {database}.district d on p.code = d.province_code;
     """
     cursor.execute(query)
