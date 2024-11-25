@@ -27,8 +27,7 @@ def get_departments_data(connection, database: str):
         SELECT
             region.name, region.code,
             p.name, p.province_code,
-            d.name as 'district_name',
-            d.district_code as 'district_code'
+            d.name, d.district_code
         FROM region
         INNER JOIN {database}.province p on region.code = p.region_code;
         INNER JOIN {database}.district d on p.code = d.province_code;
